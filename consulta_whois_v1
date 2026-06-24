@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+# consulta_whois_linkedin.py
+# Versao simplificada e didatica de consulta WHOIS em Python
+# Uso: python consulta_whois_linkedin.py
+
+"""
+O que e WHOIS?
+WHOIS e um protocolo de consulta que retorna informacoes sobre
+o registro de um dominio: data de criacao, registrador, servidores
+DNS, status e dados do proprietario.
+
+O Python automatiza isso em poucas linhas com a biblioteca python-whois.
+"""
+
+import whois
+from datetime import datetime
+
+dominio = input("Digite o dominio: ").strip()
+
+try:
+    w = whois.whois(dominio)
+
+    print("\n" + "=" * 50)
+    print(f"  WHOIS: {dominio}")
+    print("=" * 50)
+
+    dados = {
+        "Dominio": w.domain_name,
+        "Registrador": w.registrar,
+        "Criacao": w.creation_date,
+        "Expiracao": w.expiration_date,
+        "Servidores DNS": w.name_servers,
+        "Status": w.status,
+        "Organizacao": w.org,
+        "Emails": w.emails,
+    }
+
+    for chave, valor in dados.items():
+        if isinstance(valor, list):
+            valor = ", ".join(str(v) for v in valor if v)
+        if isinstance(valor, datetime):
+            valor = valor.strftime("%d/%m/%Y")
+        print(f"  {chave}: {valor or 'Nao informado'}")
+
+    print("=" * 50)
+
+except Exception as e:
+    print(f"Erro: {e}")
