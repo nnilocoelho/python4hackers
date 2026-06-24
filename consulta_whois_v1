@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
+# consulta_whois_linkedin.py
 # Versao simplificada e didatica de consulta WHOIS em Python
-
+# Uso: python consulta_whois_linkedin.py
 
 """
 O que e WHOIS?
@@ -9,39 +10,126 @@ o registro de um dominio: data de criacao, registrador, servidores
 DNS, status e dados do proprietario.
 
 O Python automatiza isso em poucas linhas com a biblioteca python-whois.
+
+Instalacao: pip install python-whois
 """
 
 import whois
 from datetime import datetime
 
-dominio = input("Digite o dominio: ").strip()
 
-try:
-    w = whois.whois(dominio)
+def formatar_campo(valor):
+    """Converte tipos de dados complexos em strings legiveis.
 
+    Funcao utilitaria que recebe um campo do objeto WHOIS e:
+    - Se for uma lista, junta os itens com virgula
+    - Se for uma data (datetime), formata para DD/MM/AAAA
+    - Se for None ou vazio, retorna 'Nao informado'
+    - Caso contrario, retorna o proprio valor como string
+
+    Isso evita erros ao imprimir campos que podem ter tipos variados.
+    """
+    if valor is None:
+        return "Nao informado"
+    if isinstance(valor, list):
+        # Junta apenas valores nao nulos
+        return ", ".join(str(v) for v in valor if v) or "Nao informado"
+    if isinstance(valor, datetime):
+        # Formata data para padrao brasileiro
+        return valor.strftime("%d/%m/%Y")
+    return str(valor)
+
+
+def consultar_whois(dominio):
+    """Realiza a consulta WHOIS e retorna o objeto com os dados.
+
+    Esta funcao:
+    1. Chama a biblioteca whois com o dominio fornecido
+    2. Retorna o objeto WHOIS que contem todos os campos
+       (registrador, datas, nameservers, status, contato, etc.)
+    3. Retorna None em caso de erro
+
+    O objeto retornado tem atributos como:
+    - domain_name: nome do dominio
+    - registrar: empresa registradora
+    - creation_date: data de criacao
+    - expiration_date: data de expiracao
+    - name_servers: servidores DNS
+    - status: status do dominio
+    - org: organizacao proprietaria
+    - emails: emails de contato
+    - text: resposta completa do WHOIS (texto bruto)
+    """
+    try:
+        w = whois.whois(dominio)
+        # Verifica se o dominio realmente foi encontrado
+        if w is None or (hasattr(w, 'domain_name') and w.domain_name is None):
+            print(f"Dominio '{dominio}' nao encontrado ou nao registrado.")
+            return None
+        return w
+    except Exception as e:
+        print(f"Erro ao consultar WHOIS: {e}")
+        return None
+
+
+def exibir_resultados(dominio, w):
+    """Exibe os dados WHOIS formatados na tela.
+
+    Organiza a saida em blocos tematicos:
+    - Dominio e registrador
+    - Datas (criacao, expiracao, atualizacao)
+    - Servidores DNS
+    - Status do dominio (traduzidos para portugues)
+    - Contato e organizacao
+    - Resposta bruta completa do WHOIS
+
+    Usa a funcao formatar_campo() para tratar cada valor
+    antes de exibir, evitando erros de tipo.
+    """
     print("\n" + "=" * 50)
     print(f"  WHOIS: {dominio}")
     print("=" * 50)
 
+    # Monta dicionario com os campos mais importantes
     dados = {
-        "Dominio": w.domain_name,
-        "Registrador": w.registrar,
-        "Criacao": w.creation_date,
-        "Expiracao": w.expiration_date,
-        "Servidores DNS": w.name_servers,
-        "Status": w.status,
-        "Organizacao": w.org,
-        "Emails": w.emails,
+        "Dominio": formatar_campo(w.domain_name),
+        "Registrador": formatar_campo(w.registrar),
+        "URL Registrador": formatar_campo(w.registrar_url),
+        "Criacao": formatar_campo(w.creation_date),
+        "Expiracao": formatar_campo(w.expiration_date),
+        "Ultima atualizacao": formatar_campo(w.updated_date),
+        "Servidores DNS": formatar_campo(w.name_servers),
+        "DNSSEC": formatar_campo(w.dnssec),
+        "Status": formatar_campo(w.status),
+        "Organizacao": formatar_campo(w.org),
+        "Nome": formatar_campo(w.name),
+        "Pais": formatar_campo(w.country),
+        "Emails": formatar_campo(w.emails),
+        "Servidor WHOIS": formatar_campo(w.whois_server),
     }
 
+    # Exibe cada campo formatado
     for chave, valor in dados.items():
-        if isinstance(valor, list):
-            valor = ", ".join(str(v) for v in valor if v)
-        if isinstance(valor, datetime):
-            valor = valor.strftime("%d/%m/%Y")
-        print(f"  {chave}: {valor or 'Nao informado'}")
+        print(f"  {chave}: {valor}")
+
+    # Exibe a resposta bruta completa se disponivel
+    if hasattr(w, 'text') and w.text:
+        print("\n  --- Resposta completa WHOIS ---")
+        print(w.text)
 
     print("=" * 50)
 
-except Exception as e:
-    print(f"Erro: {e}")
+
+# --- PROGRAMA PRINCIPAL ---
+
+# Pede o dominio ao usuario
+dominio = input("Digite o dominio: ").strip()
+
+# Valida a entrada basica
+if not dominio or '.' not in dominio:
+    print("Formato de dominio invalido! Use: ex.com.br")
+else:
+    # Consulta WHOIS e exibe os resultados
+    resultado = consultar_whois(dominio)
+    if resultado:
+        exibir_resultados(dominio, resultado)
