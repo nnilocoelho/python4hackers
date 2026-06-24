@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# consulta_whois_linkedin.py
 # Versao simplificada e didatica de consulta WHOIS em Python
-# Uso: python consulta_whois_linkedin.py
+
 
 """
 O que e WHOIS?
